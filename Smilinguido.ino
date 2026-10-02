@@ -3,7 +3,7 @@
 BluetoothSerial SerialBT; 
 
 // Pinos de entrada dos sensores (Pinos ADC1 recomendados)
-const int sensores[] = { 36, 39, 34, 35, 32, 33, 25, 26 };
+const int sensores[8] = { 36, 39, 34, 35, 32, 33, 25, 26 };
 const int SensorDireito = 27;
 
 // Definindo pinos dos motores
@@ -53,36 +53,42 @@ void setup() {
 }
 
 // Função para enviar dados via Bluetooth
-void enviarDados() {
+void enviarDados(bool leituras[8]) {
   SerialBT.print("Sensores: ");
-  for(int i = 0; i < 8; i++){
-    SerialBT.print(digitalRead(sensores[i]));
+  for (int i = 0; i < 8; i++) {
+    SerialBT.print(leituras[i]);
     SerialBT.print(" ");
   }
   SerialBT.println();
 }
 
+// Função para colocar velocidade nos motores
+void mover(unsigned int vel_esq, unsigned int vel_dir) {
+  analogWrite(IN1, vel_esq);
+  analogWrite(IN3, vel_dir);
+}
+
 void loop() {
   // Leitura de cada pino dos sensores
-  int leituraD = digitalRead(SensorDireito);
+  bool leituraD = digitalRead(SensorDireito);
 
-  int leituras[8] = {0};
+  bool leituras[8] = {0};
   for (int i = 0; i < 8; i++) {
     leituras[i] = digitalRead(sensores[i]);
   }
 
-  // Envia dados pela serial bluetooth
-  enviarDados();
+  // Envia leituras pela serial bluetooth
+  enviarDados(leituras);
 
   // Seta erro baseado nas leituras dos sensores de linha
-  if      (sensorleitura1 == HIGH) erro = -3;
-  else if (sensorleitura2 == HIGH) erro = -2;
-  else if (sensorleitura3 == HIGH) erro = -1;
-  else if (sensorleitura4 == HIGH) erro = -0.5;
-  else if (sensorleitura5 == HIGH) erro = 0.5;
-  else if (sensorleitura6 == HIGH) erro = 1;
-  else if (sensorleitura7 == HIGH) erro = 2;
-  else if (sensorleitura8 == HIGH) erro = 3;
+  if      (leituras[0]) erro = -3;
+  else if (leituras[1]) erro = -2;
+  else if (leituras[2]) erro = -1;
+  else if (leituras[3]) erro = -0.5;
+  else if (leituras[4]) erro = 0.5;
+  else if (leituras[5]) erro = 1;
+  else if (leituras[6]) erro = 2;
+  else if (leituras[7]) erro = 3;
 
   // Termos PID
   proporcional = erro;
@@ -97,32 +103,15 @@ void loop() {
   // int velocidadeEsquerda = vel_m - saidaPID;
   // int velocidadeDireita  = vel_m + saidaPID;
 
-  // Controle manual 
-  if (erro == -3) {
-    analogWrite(IN1, 150);
-    analogWrite(IN3, 255);
-  } else if (erro == -2) {
-    analogWrite(IN1, 190);
-    analogWrite(IN3, vel_m);
-  } else if (erro == -1) {
-    analogWrite(IN1, 150);
-    analogWrite(IN3, vel_m);
-  } else if (erro == -0.5) {
-    analogWrite(IN1, 190);
-    analogWrite(IN3, vel_m);
-  } else if (erro == 0.5) {
-    analogWrite(IN1, vel_m);
-    analogWrite(IN3, vel_m);
-  } else if (erro == 1) {
-    analogWrite(IN1, vel_m);
-    analogWrite(IN3, 190);
-  } else if (erro == 2) {
-    analogWrite(IN1, vel_m);
-    analogWrite(IN3, 150);
-  } else if (erro == 3) {
-    analogWrite(IN1, vel_m);
-    analogWrite(IN3, 150);
-  }
+  // Controle manual dos motores
+  if      (erro == -3)   mover(150, 255);
+  else if (erro == -2)   mover(190, vel_m);
+  else if (erro == -1)   mover(150,vel_m);
+  else if (erro == -0.5) mover(190,vel_m);
+  else if (erro == 0.5)  mover(vel_m,vel_m);
+  else if (erro == 1)    mover(vel_m,190);
+  else if (erro == 2)    mover(vel_m, 150);
+  else if (erro == 3)    mover(vel_m, 150);
 
   delay(10);
 }
